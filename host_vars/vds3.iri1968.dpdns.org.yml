@@ -1,0 +1,7 @@
+---
+acme_domains:
+  - vds3.iri1968.dpdns.org
+nginx_cert_path: /etc/nginx/ssl/vds3.iri1968.dpdns.org/
+gost_cert_path: /root/cert/vds3.iri1968.dpdns.org/
+nginx_service_name: nginx.service
+gost_service_name: gost-wg.service

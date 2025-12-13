@@ -1,0 +1,5 @@
+---                                                                                                  
+acme_domains:                                                                                        
+  - gw.iri1968.dpdns.org                                                                             
+gost_cert_path: /root/.acme.sh/gw.iri1968.dpdns.org_ecc/                                             
+gost_service_name: gost-server.service

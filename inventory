@@ -1,0 +1,3 @@
+[vds]
+gw.iri1968.dpdns.org ansible_port=22
+vds3.iri1968.dpdns.org ansible_port=222
