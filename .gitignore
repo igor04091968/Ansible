@@ -1,0 +1,17 @@
+# Ansible temporary files
+.ansible/
+*.retry
+
+# Python virtual environment
+.venv/
+
+# User-specific files
+.bash_history
+.gitconfig
+.ssh/
+config.json
+*.log
+*.bak
+project_1/
+gw_update/
+run_playbook.sh
