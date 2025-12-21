@@ -47,7 +47,7 @@
             chdir: "{{ project_path }}"
 
         - name: Push changes to remote
-          ansible.builtin.command: git push origin main
+          ansible.builtin.command: git push origin master
           args:
             chdir: "{{ project_path }}"
           register: push_result
