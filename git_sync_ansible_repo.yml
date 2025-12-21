@@ -1,0 +1,49 @@
+---
+- name: Synchronize Ansible Project with GitHub
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    project_path: /mnt/usb_hdd1/Projects/Ansible
+    commit_message: "Automatic sync by Ansible"
+
+  tasks:
+    - name: Add repository to git safe.directory
+      ansible.builtin.command: git config --global --add safe.directory "{{ project_path }}"
+      changed_when: false
+
+    - name: Check for local changes
+      ansible.builtin.command: git status --porcelain
+      args:
+        chdir: "{{ project_path }}"
+      register: git_status
+      changed_when: false
+
+    - name: "Commit and push changes if there are any"
+      block:
+        - name: Add all changes to staging
+          ansible.builtin.command: git add .
+          args:
+            chdir: "{{ project_path }}"
+
+        - name: Commit changes
+          ansible.builtin.command: git commit -m "{{ commit_message }}"
+          args:
+            chdir: "{{ project_path }}"
+
+        - name: Push changes to remote
+          ansible.builtin.command: git push
+          args:
+            chdir: "{{ project_path }}"
+          register: push_result
+          
+        - name: Show push output
+          ansible.builtin.debug:
+            var: push_result.stdout_lines
+
+      when: git_status.stdout != ""
+
+    - name: Report no changes
+      ansible.builtin.debug:
+        msg: "No changes to commit in {{ project_path }}."
+      when: git_status.stdout == ""

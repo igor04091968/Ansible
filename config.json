@@ -1,0 +1,14 @@
+{
+ 	"bolt": {
+ 		"host": "/usr/local/etc/database.boltdb"
+ 	},
+ 	"dialect": "bolt",
+ 	"tmp_path": "/mnt/usb_hdd1/Projects/Ansible",
+ 	"web_host": "http://notebook.iri1968.dpdns.org:3000/semaphore",
+ 	"cookie_hash": "bXRRQkJJ2r1gsznNFX+Ni1l8jyvw/VzfV0Pur/SFBaY=",
+ 	"cookie_encryption": "S2+xSDYk5vBeYusZOycWp5YNIJaMYntYakees9fwSi0=",
+ 	"access_key_encryption": "mkEzFV2w9+lB3aH4O6F4Zd+pQdE7JPzsunpFNMEqZaw=",
+ 	"telegram_alert": true,
+ 	"telegram_chat": "5997070906",
+ 	"telegram_token": "7881592307:AAFQU2oJO_TtLlf0NhH76DC07e2FGmojby"
+ }

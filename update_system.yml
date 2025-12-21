@@ -1,10 +1,12 @@
-- hosts: servers
+- hosts: gw,vds,site
   become: true
-  inventory:
-    [servers]
-    vds3 ansible_host=vds3.iri1968.dpdns.org
-    gw ansible_host=gw.iri1968.dpdns.org
   tasks:
+    - name: 'Hold grub-pc package on vds3'
+      ansible.builtin.dpkg_selections:
+        name: grub-pc
+        selection: hold
+      when: inventory_hostname == 'vds3.iri1968.dpdns.org'
+
     - name: 'Update apt package cache'
       ansible.builtin.apt:
         update_cache: true

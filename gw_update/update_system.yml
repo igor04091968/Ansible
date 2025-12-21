@@ -1,0 +1,13 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Disable k6 repository using sed
+      ansible.builtin.shell:
+        cmd: "sed -i s%^deb .*dl\\\\.k6\\\\.io.*%#&% /etc/apt/sources.list.d/k6.list"
+      changed_when: false # This command is idempotent, but shell module doesnt know that
+      ignore_errors: true # In case the file does not exist
+
+    - name: Update and upgrade apt packages
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
