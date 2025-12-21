@@ -6,11 +6,26 @@
   vars:
     project_path: /mnt/usb_hdd1/Projects/Ansible
     commit_message: "Automatic sync by Ansible"
+    remote_url: https://github.com/igor04091968/Ansible.git
 
   tasks:
     - name: Add repository to git safe.directory
       ansible.builtin.command: git config --global --add safe.directory "{{ project_path }}"
       changed_when: false
+
+    - name: Check for existing remotes
+      ansible.builtin.command: git remote -v
+      args:
+        chdir: "{{ project_path }}"
+      register: git_remotes
+      changed_when: false
+      ignore_errors: true
+
+    - name: Add remote if it does not exist
+      ansible.builtin.command: git remote add origin {{ remote_url }}
+      args:
+        chdir: "{{ project_path }}"
+      when: git_remotes.stdout == ""
 
     - name: Check for local changes
       ansible.builtin.command: git status --porcelain
@@ -32,7 +47,7 @@
             chdir: "{{ project_path }}"
 
         - name: Push changes to remote
-          ansible.builtin.command: git push
+          ansible.builtin.command: git push origin main
           args:
             chdir: "{{ project_path }}"
           register: push_result
