@@ -1,0 +1,22 @@
+---
+- name: Synchronize remote git with local
+  hosts: localhost
+  connection: local
+  become_user: root
+
+  tasks:
+    - name: Add repository to git safe.directory
+      ansible.builtin.command: git config --global --add safe.directory "{{ project_path }}"
+      changed_when: false
+      become: yes
+
+    - name: Pull changes from remote
+      ansible.builtin.command: git pull
+      args:
+        chdir: "{{ project_path }}"
+      register: pull_result
+      
+    - name: Show pull output
+      ansible.builtin.debug:
+        var: pull_result.stdout_lines
+

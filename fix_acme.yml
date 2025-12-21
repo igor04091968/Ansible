@@ -1,0 +1,16 @@
+---
+- name: Fix acme.sh installation by replacing it with a git clone
+  hosts: vds
+  become: yes
+  tasks:
+    - name: Rename existing acme.sh directory
+      ansible.builtin.command: mv /root/.acme.sh /root/.acme.sh.bak
+      args:
+        creates: /root/.acme.sh.bak
+
+    - name: Clone acme.sh repository freshly
+      ansible.builtin.git:
+        repo: 'https://github.com/acmesh-official/acme.sh.git'
+        dest: /root/.acme.sh
+        version: master
+

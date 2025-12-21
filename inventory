@@ -1,0 +1,4 @@
+[vds]                                                                                                    
+vds3.iri1968.dpdns.org
+[site]
+localhost ansible_connection=local

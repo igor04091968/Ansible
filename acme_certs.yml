@@ -1,0 +1,104 @@
+---
+- name: Manage ACME certificates and Services
+  hosts: vds
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Run acme.sh cron job to ensure certificates are up-to-date
+      ansible.builtin.shell: /root/.acme.sh/acme.sh --cron --home /root/.acme.sh
+      environment:
+        CF_Token: "{{ cloudflare_api_token }}"
+      register: acme_cron_result
+      changed_when: "'Cert auto renewal.' in acme_cron_result.stdout"
+      notify:
+        - Reload GOST
+        - Reload Nginx
+
+    - name: Ensure Nginx SSL directory exists
+      ansible.builtin.file:
+        path: "{{ nginx_cert_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      when: nginx_cert_path is defined
+
+    - name: Deploy certificate to Nginx directory
+      ansible.builtin.copy:
+        src: "/root/.acme.sh/{{ item }}_ecc/fullchain.cer"
+        dest: "{{ nginx_cert_path }}fullchain.pem"
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0644'
+      when: nginx_cert_path is defined
+      notify: Reload Nginx
+      loop: "{{ acme_domains }}"
+      loop_control:
+        loop_var: item
+
+    - name: Deploy private key to Nginx directory
+      ansible.builtin.copy:
+        src: "/root/.acme.sh/{{ item }}_ecc/{{ item }}.key"
+        dest: "{{ nginx_cert_path }}privkey.pem"
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0600'
+      when: nginx_cert_path is defined
+      notify: Reload Nginx
+      loop: "{{ acme_domains }}"
+      loop_control:
+        loop_var: item
+
+    - name: Ensure custom GOST cert directory exists
+      ansible.builtin.file:
+        path: "{{ gost_cert_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      when: gost_cert_path is defined and "acme.sh" not in gost_cert_path
+
+    - name: Deploy certificate to GOST directory
+      ansible.builtin.copy:
+        src: "/root/.acme.sh/{{ item }}_ecc/fullchain.cer"
+        dest: "{{ gost_cert_path }}fullchain.pem"
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0644'
+      when: gost_cert_path is defined and "acme.sh" not in gost_cert_path
+      notify: Reload GOST
+      loop: "{{ acme_domains }}"
+      loop_control:
+        loop_var: item
+
+    - name: Deploy private key to GOST directory
+      ansible.builtin.copy:
+        src: "/root/.acme.sh/{{ item }}_ecc/{{ item }}.key"
+        dest: "{{ gost_cert_path }}privkey.pem"
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0600'
+      when: gost_cert_path is defined and "acme.sh" not in gost_cert_path
+      notify: Reload GOST
+      loop: "{{ acme_domains }}"
+      loop_control:
+        loop_var: item
+
+  handlers:
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: "{{ nginx_service_name }}"
+        state: reloaded
+      when: nginx_service_name is defined
+      listen: "Reload Nginx"
+
+    - name: Reload GOST
+      ansible.builtin.service:
+        name: "{{ gost_service_name }}"
+        state: restarted
+      when: gost_service_name is defined
+      listen: "Reload GOST"
