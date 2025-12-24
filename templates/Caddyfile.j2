@@ -1,4 +1,4 @@
 {{ caddy_domain }} {
-    tls internal
+    tls {{ caddy_cert_dir }}/fullchain.cer {{ caddy_cert_dir }}/private.key
     reverse_proxy localhost:{{ grafana_nodeport }}
 }

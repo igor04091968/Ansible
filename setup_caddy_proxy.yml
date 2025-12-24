@@ -1,12 +1,16 @@
-- name: Setup Caddy as Reverse Proxy for Grafana
+- name: Setup Caddy with acme.sh certificate
   hosts: localhost
   gather_facts: false
   become: yes
   vars:
-    caddy_domain: "notebook.iri1968.dpdns.org"
+    acme_sh_install_dir: "/home/igor/.acme.sh"
+    acme_sh_executable: "/home/igor/.acme.sh/acme.sh"
+    domain: "notebook.iri1968.dpdns.org"
+    cloudflare_token: "VsHL9RFCnnZRPVA6Sxh3WW-qDHiZckNzpD85yNC6"
+    caddy_cert_dir: "/etc/caddy/certs"
     grafana_namespace: "monitoring"
     grafana_service: "prometheus-grafana"
-    kubeconfig_path: "/home/igor/.kube/config"
+    kubeconfig_path: "/etc/rancher/k3s/k3s.yaml" # Corrected path for k3s kubeconfig
 
   tasks:
     - name: Ensure conflicting services are stopped and disabled
@@ -18,13 +22,14 @@
         - nginx
       ignore_errors: yes
 
-    - name: Install dependencies for Caddy repository
+    - name: Install dependencies for Caddy repository and Python k8s client
       ansible.builtin.apt:
         name:
           - debian-keyring
           - debian-archive-keyring
           - apt-transport-https
           - curl
+          - python3-kubernetes # Required for k8s modules, even if we use shell for kubectl
         state: present
 
     - name: Add Caddy GPG key
@@ -50,8 +55,55 @@
         update_cache: yes
         state: present
 
+    - name: Ensure acme.sh is installed
+      ansible.builtin.git:
+        repo: 'https://github.com/acmesh-official/acme.sh.git'
+        dest: "{{ acme_sh_install_dir }}"
+        version: master
+      become_user: igor # Run as igor, not root, for user's home directory
+
+    - name: Issue/renew certificate with acme.sh using Cloudflare DNS
+      ansible.builtin.shell: >
+        {{ acme_sh_executable }} --issue --server letsencrypt --dns dns_cf -d {{ domain }} --ecc
+      environment:
+        CF_Token: "{{ cloudflare_token }}"
+        # Need to ensure acme.sh uses the user's home, not root's
+        HOME: "/home/igor"
+      become_user: igor # Run as igor
+      changed_when: "'Cert success' in acme_result.stdout"
+      register: acme_result
+      failed_when: "acme_result.rc not in [0, 2]"
+
+    - name: Create directory for Caddy certificates
+      ansible.builtin.file:
+        path: "{{ caddy_cert_dir }}"
+        state: directory
+        owner: root
+        group: caddy
+        mode: '0750'
+
+    - name: Copy certificate to Caddy directory
+      ansible.builtin.copy:
+        src: "{{ acme_sh_install_dir }}/{{ domain }}_ecc/fullchain.cer"
+        dest: "{{ caddy_cert_dir }}/fullchain.cer"
+        remote_src: yes
+        owner: root
+        group: caddy
+        mode: '0640'
+      notify: Restart Caddy
+
+    - name: Copy private key to Caddy directory
+      ansible.builtin.copy:
+        src: "{{ acme_sh_install_dir }}/{{ domain }}_ecc/{{ domain }}.key"
+        dest: "{{ caddy_cert_dir }}/private.key"
+        remote_src: yes
+        owner: root
+        group: caddy
+        mode: '0640'
+      notify: Restart Caddy
+
     - name: Check current Grafana service type
-      ansible.builtin.shell: "kubectl get svc {{ grafana_service }} -n {{ grafana_namespace }} -o jsonpath='{.spec.type}'"
+      ansible.builtin.shell: "kubectl get svc {{ grafana_service }} -n {{ grafana_namespace }} -o jsonpath='{.spec.type}' --kubeconfig {{ kubeconfig_path }}"
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
       register: grafana_svc_type_check
@@ -60,7 +112,7 @@
     - name: Patch Grafana service to NodePort (kubectl)
       ansible.builtin.shell: |
         kubectl patch service {{ grafana_service }} -n {{ grafana_namespace }} \
-          --type='merge' -p '{"spec":{"type":"NodePort"}}'
+          --type='merge' -p '{"spec":{"type":"NodePort"}}' --kubeconfig {{ kubeconfig_path }}
       args:
         executable: /bin/bash
       environment:
@@ -72,7 +124,7 @@
     - name: Get Grafana NodePort
       ansible.builtin.shell: |
         kubectl get svc {{ grafana_service }} -n {{ grafana_namespace }} \
-          -o jsonpath='{.spec.ports[0].nodePort}'
+          -o jsonpath='{.spec.ports[0].nodePort}' --kubeconfig {{ kubeconfig_path }}
       args:
         executable: /bin/bash
       environment:
@@ -95,6 +147,8 @@
         owner: root
         group: root
         mode: '0644'
+      vars:
+        caddy_domain: "{{ domain }}" # Ensure caddy_domain is passed to template
       notify: Restart Caddy
 
   handlers:
