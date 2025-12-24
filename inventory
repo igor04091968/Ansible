@@ -1,7 +1,11 @@
 [vds]                                                                                                    
-vds3.iri1968.dpdns.org ansible_port=222
+vds3.iri1968.dpdns.org ansible_port=222 ansible_user=igor
 [site]
 localhost ansible_connection=local
 
 [gw]
+gw.iri1968.dpdns.org ansible_user=igor
+
+[monitored_vms]
+vds3.iri1968.dpdns.org
 gw.iri1968.dpdns.org

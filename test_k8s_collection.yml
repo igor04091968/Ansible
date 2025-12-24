@@ -1,0 +1,17 @@
+- name: Test community.kubernetes collection
+  hosts: localhost
+  become: yes
+  collections:
+    - community.kubernetes
+  tasks:
+    - name: Get Kubernetes API Server info
+      community.kubernetes.k8s_info:
+        api_version: v1
+        kind: Service
+        name: kubernetes
+        namespace: default
+      register: k8s_info_result
+      
+    - name: Display k8s info result
+      ansible.builtin.debug:
+        var: k8s_info_result

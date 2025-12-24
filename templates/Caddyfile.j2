@@ -1,0 +1,4 @@
+{{ caddy_domain }} {
+    tls internal
+    reverse_proxy localhost:{{ grafana_nodeport }}
+}

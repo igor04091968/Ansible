@@ -1,6 +1,6 @@
 ---
 - name: Manage ACME certificates and Services
-  hosts: vds
+  hosts: vds,gw
   become: yes
   gather_facts: no
   tasks:
@@ -13,6 +13,7 @@
       notify:
         - Reload GOST
         - Reload Nginx
+        - Reload Caddy
 
     - name: Ensure Nginx SSL directory exists
       ansible.builtin.file:
@@ -102,3 +103,10 @@
         state: restarted
       when: gost_service_name is defined
       listen: "Reload GOST"
+
+    - name: Reload Caddy
+      ansible.builtin.service:
+        name: "{{ caddy_service_name }}"
+        state: reloaded
+      when: caddy_service_name is defined
+      listen: "Reload Caddy"

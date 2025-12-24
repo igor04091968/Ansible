@@ -1,5 +1,6 @@
----                                                                                                  
-acme_domains:                                                                                        
-  - gw.iri1968.dpdns.org                                                                             
-gost_cert_path: /root/.acme.sh/gw.iri1968.dpdns.org_ecc/                                             
+---
+acme_domains:
+  - gw.iri1968.dpdns.org
 gost_service_name: gost-server.service
+cloudflare_api_token: "7WRZrTUOxGfr0Zn1UuKCsW3cvvB-ud0ZiNsuOPdP"
+caddy_service_name: caddy.service

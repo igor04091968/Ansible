@@ -1,0 +1,24 @@
+[Unit]
+Description=Prometheus WireGuard Exporter Docker Container
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStartPre=-/usr/bin/docker pull mindflavor/prometheus-wireguard-exporter:{{ wg_exporter_version }}
+ExecStart=/usr/bin/docker run --rm --name wgexporter \
+  --network=host \
+  --cap-add=NET_ADMIN \
+  -v /etc/wireguard:/etc/wireguard:ro \
+  mindflavor/prometheus-wireguard-exporter:{{ wg_exporter_version }}
+ExecStop=/usr/bin/docker stop wgexporter
+ExecStopPost=/usr/bin/docker rm wgexporter
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

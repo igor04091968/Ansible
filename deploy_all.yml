@@ -1,0 +1,51 @@
+---
+- name: 1. Configure Node Exporter on remote hosts
+  import_playbook: install_node_exporter.yml
+
+- name: 2. Configure WireGuard Exporter on remote hosts
+  import_playbook: install_wireguard_exporter.yml
+
+- name: 3. Deploy and configure applications in k3s cluster
+  hosts: localhost
+  connection: local
+  become: yes # We need sudo to run kubectl/helm with k3s's kubeconfig
+
+  vars:
+    # Path to the k3s kubeconfig file
+    kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+
+    # --- Prometheus/Grafana Configuration ---
+    # It's a good practice to pin the chart version for predictable deployments
+    prometheus_chart_version: "58.0.0"
+    prometheus_release_name: prometheus
+    prometheus_namespace: monitoring
+    prometheus_values_file: /mnt/usb_hdd1/Projects/values-light.yaml
+
+    # --- SUI Application Configuration ---
+    sui_manifest_file: /mnt/usb_hdd1/Projects/sing-chisel-tel/sui-deployment.yaml
+
+  tasks:
+    - name: Add prometheus-community Helm repository
+      community.kubernetes.helm_repository:
+        name: prometheus-community
+        repo_url: https://prometheus-community.github.io/helm-charts
+      # This task runs without become because helm repo commands don't need sudo
+      become: no
+
+    - name: Deploy/Update Prometheus and Grafana stack via Helm
+      community.kubernetes.helm:
+        kubeconfig: "{{ kubeconfig_path }}"
+        name: "{{ prometheus_release_name }}"
+        chart_ref: "prometheus-community/kube-prometheus-stack"
+        chart_version: "{{ prometheus_chart_version }}"
+        release_namespace: "{{ prometheus_namespace }}"
+        create_namespace: yes
+        values_files:
+          - "{{ prometheus_values_file }}"
+        state: present
+
+    - name: Deploy/Update SUI application via manifest
+      community.kubernetes.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: "{{ sui_manifest_file }}"
